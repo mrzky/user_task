@@ -17,10 +17,21 @@ class UserList extends StatefulWidget {
 }
 
 class _UserListState extends State<UserList> {
+  final editingController = TextEditingController();
 
-  TextEditingController editingController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+
+  String name = '';
+  String email = '';
+  int userId = 0;
 
   List<User> userList = [];
+
+  @override
+  void dispose() {
+    editingController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,8 +61,6 @@ class _UserListState extends State<UserList> {
   }
 
   Widget renderBody(UserState state) {
-
-
     if (state is UserLoaded) {
       return renderMainView(state.initialData, state.data);
     }
@@ -74,7 +83,8 @@ class _UserListState extends State<UserList> {
           padding: const EdgeInsets.all(8.0),
           child: TextField(
             onChanged: (value) {
-              BlocProvider.of<UserBloc>(context).add(SearchUser(initialData, userList, value));
+              BlocProvider.of<UserBloc>(context)
+                  .add(SearchUser(initialData, userList, value));
             },
             controller: editingController,
             decoration: const InputDecoration(
@@ -92,13 +102,14 @@ class _UserListState extends State<UserList> {
 
   Widget renderListView(List<User> initialData, List<User> users) {
     return RefreshIndicator(
-      onRefresh: () { 
+      onRefresh: () {
         return Future.delayed(const Duration(seconds: 0), () {
           BlocProvider.of<UserBloc>(context).add(GetUsers());
         });
       },
-      child: ListView.builder(
+      child: ListView.separated(
         itemCount: users.length,
+        separatorBuilder: (_, __) => const Divider(),
         itemBuilder: (BuildContext context, int index) {
           return Slidable(
             key: ValueKey(index),
@@ -106,8 +117,8 @@ class _UserListState extends State<UserList> {
               motion: const DrawerMotion(),
               children: [
                 SlidableAction(
-                  onPressed: (sideableContext) {
-                    deleteDialog(context, initialData, users, users[index], index);
+                  onPressed: (slidableContext) {
+                    deleteDialog(context, initialData, users, users[index]);
                     debugPrint('delete');
                   },
                   backgroundColor: const Color(0xFFFE4A49),
@@ -116,7 +127,13 @@ class _UserListState extends State<UserList> {
                   label: 'Delete',
                 ),
                 SlidableAction(
-                  onPressed: (context) {
+                  onPressed: (slidableContext) {
+                    setState(() {
+                      name = users[index].name ?? '';
+                      email = users[index].email ?? '';
+                      userId = users[index].id ?? 0;
+                    });
+                    showEditForm(context, initialData, users[index].id ?? 0);
                     debugPrint('edit');
                   },
                   backgroundColor: const Color(0xFF21B7CA),
@@ -152,8 +169,8 @@ class _UserListState extends State<UserList> {
     );
   }
 
-  void deleteDialog(
-      BuildContext context, List<User> initialData, List<User> users, User user, int index) {
+  void deleteDialog(BuildContext context, List<User> initialData,
+      List<User> users, User user) {
     showDialog(
         context: context,
         builder: (dialogContext) {
@@ -168,7 +185,7 @@ class _UserListState extends State<UserList> {
                   onPressed: () {
                     Navigator.of(dialogContext).pop();
                     BlocProvider.of<UserBloc>(context)
-                        .add(DeleteUser(initialData, users, index));
+                        .add(DeleteUser(initialData, users, user));
                   },
                   child: const Text(
                     "Delete",
@@ -178,4 +195,105 @@ class _UserListState extends State<UserList> {
           );
         });
   }
+
+  void showEditForm(BuildContext context, List<User> users, int userId) {
+    showModalBottomSheet(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
+      ),
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+          ),
+          child: Container(
+            height: 300,
+            child: Form(
+              key: formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  const Center(
+                    child: Text(
+                      "EDIT",
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 15,
+                  ),
+                  renderNameField(),
+                  renderEmailField(),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(40)),
+                    onPressed: () {
+                      final isValid = formKey.currentState!.validate();
+                      // FocusScope.of(context).unfocus();
+
+                      if (isValid) {
+                        formKey.currentState!.save();
+                        Navigator.of(sheetContext).pop();
+                        BlocProvider.of<UserBloc>(context)
+                        .add(EditUser(users, userId, name, email));
+                      }
+                    },
+                    child: const Text("SAVE"),
+                  )
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget renderNameField() => TextFormField(
+    initialValue: name,
+        decoration: const InputDecoration(
+          icon: Icon(Icons.person),
+          labelText: 'Name',
+          helperText: 'Input Name',
+          enabledBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.blue),
+          ),
+        ),
+        validator: (value) {
+          if (value!.length < 4) {
+            return 'Enter at least 4 characters';
+          } else {
+            return null;
+          }
+        },
+        maxLength: 30,
+        onSaved: (value) => setState(() => name = value ?? ''),
+      );
+
+  Widget renderEmailField() => TextFormField(
+    initialValue: email,
+        decoration: const InputDecoration(
+          icon: Icon(Icons.email),
+          labelText: 'Email',
+          helperText: 'Input Email',
+          enabledBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.blue),
+          ),
+        ),
+        validator: (value) {
+          if (value!.length < 4) {
+            return 'Enter at least 4 characters';
+          } else {
+            return null;
+          }
+        },
+        maxLength: 30,
+        onSaved: (value) => setState(() => email = value ?? ''),
+      );
 }

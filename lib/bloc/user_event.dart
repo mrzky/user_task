@@ -24,6 +24,14 @@ class SortUsers extends UserEvent {
   SortUsers(this.initialData, this.users);
 }
 
+class EditUser extends UserEvent {
+  final List<User> initialData;
+  final int userId;
+  final String name;
+  final String email;
+  EditUser(this.initialData, this.userId, this.name, this.email);
+}
+
 class DeleteUser extends UserEvent {
   final List<User> initialData;
   final List<User> users;

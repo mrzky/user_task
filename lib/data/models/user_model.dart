@@ -20,14 +20,14 @@ class User {
         this.company,
     });
 
-    final int? id;
-    final String? name;
-    final String? username;
-    final String? email;
-    final Address? address;
-    final String? phone;
-    final String? website;
-    final Company? company;
+    int? id;
+    String? name;
+    String? username;
+    String? email;
+    Address? address;
+    String? phone;
+    String? website;
+    Company? company;
 
     factory User.fromJson(Map<String, dynamic> json) => User(
         id: json["id"],

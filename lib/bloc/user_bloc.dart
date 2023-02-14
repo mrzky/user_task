@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:meta/meta.dart';
+import 'package:user_task/data/models/user_model.dart';
 import 'package:user_task/data/models/todos_model.dart';
 import 'package:user_task/data/repositories/user_repo.dart';
 
@@ -13,13 +14,11 @@ part 'user_event.dart';
 part 'user_state.dart';
 
 class UserBloc extends Bloc<UserEvent, UserState> {
-
   // late List<User> data;
   // final UserRepo userRepo;
 
   UserBloc() : super(UserInitial()) {
     on<UserEvent>((event, emit) async {
-      
       // get users event
       if (event is GetUsers) {
         emit(UserLoading());
@@ -36,14 +35,43 @@ class UserBloc extends Bloc<UserEvent, UserState> {
       }
 
       if (event is SortUsers) {
-        final data = event.users..sort((a,b) => a.name!.toLowerCase().compareTo(b.name!.toLowerCase()));
+        final data = event.users
+          ..sort(
+              (a, b) => a.name!.toLowerCase().compareTo(b.name!.toLowerCase()));
         emit(UserLoaded(event.initialData, data));
       }
 
+      if (event is EditUser) {
+        emit(UserLoading());
+        var body = {
+          'name': event.name,
+          'email': event.email,
+        };
+        final succeed =
+            await APIClient().put(UserRepo.updateUser(event.userId, body));
+        if (succeed) {
+          var index = event.initialData
+              .indexWhere((element) => element.id == event.userId);
+          event.initialData[index].name = event.name;
+          event.initialData[index].email = event.email;
+          emit(UserLoaded(event.initialData, event.initialData));
+        } else {
+          UserError();
+        }
+        // emit(UserSearchInitialData(data));
+      }
+
       if (event is DeleteUser) {
-        event.users.remove(event.user);
-        event.initialData.remove(event.user);
-        emit(UserLoaded(event.initialData, event.users));
+        emit(UserLoading());
+        final succeed =
+            await APIClient().delete(UserRepo.deleteUser(event.user.id ?? 0));
+        if (succeed) {
+          event.users.remove(event.user);
+          event.initialData.remove(event.user);
+          emit(UserLoaded(event.initialData, event.users));
+        } else {
+          UserError();
+        }
       }
 
       if (event is SearchUser) {
@@ -51,10 +79,12 @@ class UserBloc extends Bloc<UserEvent, UserState> {
           emit(UserLoaded(event.initialData, event.initialData));
           return;
         }
-        final data = event.initialData.where((item) => item.name!.toLowerCase().contains(event.query.toLowerCase())).toList();
+        final data = event.initialData
+            .where((item) =>
+                item.name!.toLowerCase().contains(event.query.toLowerCase()))
+            .toList();
         emit(UserLoaded(event.initialData, data));
       }
-
     });
   }
 }

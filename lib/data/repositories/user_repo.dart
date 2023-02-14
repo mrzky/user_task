@@ -29,4 +29,25 @@ class UserRepo {
     );
   }
 
+  static APIService<bool> updateUser(int userId, dynamic body) {
+
+    return APIService(
+      url: Uri.https(baseUrl, "/users/$userId"),
+      body: body,
+      parse: (response) {
+        return true;
+      }
+    );
+  }
+
+  static APIService<bool> deleteUser(int userId) {
+
+    return APIService(
+      url: Uri.https(baseUrl, "/users/$userId"),
+      parse: (response) {
+        return true;
+      }
+    );
+  }
+
 }
