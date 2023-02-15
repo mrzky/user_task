@@ -1,3 +1,5 @@
-<domain-config cleartextTrafficPermitted="true">
-    <domain includeSubdomains="true">jsonplaceholder.typicode.com</domain>
-</domain-config>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">jsonplaceholder.typicode.com</domain>
+    </domain-config>
+</network-security-config>
